@@ -64,7 +64,6 @@ class Command extends Component
             $url[] = $this->type;
         }
         $url[] = '_search';
-
         return $this->db->get($url, array_merge($this->options, $options), $query);
     }
 
@@ -89,9 +88,9 @@ class Command extends Component
         if ($this->type !== null) {
             $url[] = $this->type;
         }
-        $url[] = '_query';
+        $url[] = '_delete_by_query';
 
-        return $this->db->delete($url, array_merge($this->options, $options), $query);
+        return $this->db->post($url, array_merge($this->options, $options), $query);
     }
 
     /**
@@ -134,7 +133,6 @@ class Command extends Component
         } else {
             $body = is_array($data) ? Json::encode($data) : $data;
         }
-
         if ($id !== null) {
             return $this->db->put([$index, $type, $id], $options, $body);
         } else {
@@ -245,11 +243,11 @@ class Command extends Component
      * @return mixed
      * @see http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
-    public function createIndex($index, $configuration = null)
+    public function createIndex($index, $configuration = null, $options = [])
     {
         $body = $configuration !== null ? Json::encode($configuration) : null;
 
-        return $this->db->put([$index], [], $body);
+        return $this->db->put([$index], $options, $body);
     }
 
     /**
@@ -490,37 +488,46 @@ class Command extends Component
 
     /**
      * @param array $options
-     * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
      * @return mixed
+     * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
      * @since 2.0.4
      */
     public function scroll($options = [])
     {
-       return $this->db->get(['_search', 'scroll'], $options);
+        return $this->db->get(['_search', 'scroll'], $options);
     }
 
     /**
      * @param array $options
-     * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
      * @return mixed
+     * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
      * @since 2.0.4
      */
     public function clearScroll($options = [])
     {
-       return $this->db->delete(['_search', 'scroll'], $options);
+        return $this->db->delete(['_search', 'scroll'], $options);
     }
 
     /**
      * @param $index
      * @return mixed
-     * @see http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-status.html
+     * @see http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-stats.html
      */
-    public function getIndexStatus($index = '_all')
+    public function getIndexStats($index = '_all')
     {
-        return $this->db->get([$index, '_status']);
+        return $this->db->get([$index, '_stats']);
     }
 
-    // TODO http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-stats.html
+    /**
+     * @param $index
+     * @return mixed
+     * @see https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-recovery.html
+     */
+    public function getIndexRecoveryStats($index = '_all')
+    {
+        return $this->db->get([$index, '_recovery']);
+    }
+
     // http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-segments.html
 
     /**
@@ -589,17 +596,6 @@ class Command extends Component
 
     /**
      * @param $index
-     * @param $type
-     * @return mixed
-     * @see http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html
-     */
-    public function deleteMapping($index, $type)
-    {
-        return $this->db->delete([$index, '_mapping', $type]);
-    }
-
-    /**
-     * @param $index
      * @param string $type
      * @return mixed
      * @see http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-field-mapping.html
@@ -636,8 +632,8 @@ class Command extends Component
         $body = Json::encode([
             'template' => $pattern,
             'order' => $order,
-            'settings' => (object) $settings,
-            'mappings' => (object) $mappings,
+            'settings' => (object)$settings,
+            'mappings' => (object)$mappings,
         ]);
 
         return $this->db->put(['_template', $name], [], $body);
