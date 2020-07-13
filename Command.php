@@ -64,6 +64,8 @@ class Command extends Component
             $url[] = $this->type;
         }
         $url[] = '_search';
+        // 2020-07-13 larkit 命中全部  打破 10000 的限制
+        $options['track_total_hits'] = 'true';
         return $this->db->get($url, array_merge($this->options, $options), $query);
     }
 
